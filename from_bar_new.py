@@ -1,4 +1,5 @@
 import numpy as np
+import time
 ESP = 10**(-6)
 
 
@@ -104,7 +105,12 @@ def solver(A: np.ndarray):
 
     # Initiate a random vector that represents an upper triangular matrix
     #x_vector = np.random.normal(0., 0.1, size=(1, n**2))
-    x_vector = (1/100) * np.ones((1, n ** 2))
+    # x_vector = (1/100) * np.ones((1, n ** 2))
+
+    covariance = np.cov(A.T)
+    epsilon = 1e-6
+    x_vector = covariance + epsilon * np.eye(n)
+
     x_vector = project_to_upper_triangular_matrix(x_vector, n)
     error = (1/(2*m)) * np.linalg.norm(calc_gradient(x_vector, A, t))**2
 
@@ -112,18 +118,32 @@ def solver(A: np.ndarray):
     while error > 10**-3:
         grad_val = np.transpose(calc_gradient(x_vector, A, t))
         step_size = backtracking(lambda x: calc_objective_func(x, A, t), grad_val, x_vector)
+        # step_size = 10
         x_vector += x_vector - step_size * grad_val
         x_vector = project_to_upper_triangular_matrix(x_vector, n)
         error = (1 / (2 * m)) * np.linalg.norm(calc_gradient(x_vector, A, t)) ** 2
-        #boolean += 1
 
     L = x_vector.reshape((n, n))
     PD_matrix = np.linalg.inv(np.transpose(L) @ L)
 
     return PD_matrix
 
+def check_results(PD_mat, A_mat, runtime):
+    is_pd = bool(np.all(np.linalg.eigvals(PD_mat) > 0))
+    constraint = bool(np.all(np.einsum('...i,ij,...j->...', A_mat, np.linalg.inv(PD_mat), A_mat) <= 1.))
+    _, logdet_X = np.linalg.slogdet(PD_mat)
+    print(f"is_pd = {is_pd}\n"
+          f"constraint = {constraint}\n"
+          f"runtime = {runtime}\n"
+          f"logdet(x)={logdet_X}")
+
 
 if __name__ == '__main__':
     A_mat = np.arange(12).reshape((3, 4))
+    # A_mat = np.load("Examples-20230617/blobs.100.10.npy")
+    start_time = time.time()
     PD_mat = solver(A_mat)
+    runtime = time.time()-start_time
     print(PD_mat)
+    check_results(PD_mat, A_mat, runtime)
+
