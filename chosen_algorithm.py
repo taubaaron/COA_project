@@ -6,7 +6,7 @@ from tabulate import tabulate
 MAX_ITERATIONS = 1000
 EPSILON = 1e-6
 MU_FACTOR = 0.9
-MU_MIN = 1e-6
+MU_MIN = 1e-8
 STEP_SIZE = 0.5
 
 
@@ -82,38 +82,43 @@ def project_constraint(X, A):
 
 
 def test_algo():
-    # A = np.load('Examples-20230617/blobs.100.10.npy')
-    # A = np.load('Examples-20230617/checkerboard.50.4.npy')
-    # A = np.load('Examples-20230617/gaussian.2.5.npy')
-    # A = np.load('Examples-20230617/moons.50.2.npy')
-    # A = np.load('Examples-20230617/sparse.1000.10.npy')
-    # A = np.load('Examples-20230617/spiral.1000.20.npy')
-    # A = np.load('Examples-20230617/uniform.2.5.npy')
-    # A = np.load('Examples-20230617/uniform.10.10.npy')
-    A = np.load('Examples-20230617/wave.50.4.npy')
-    # A = np.array([[-0.79552, -0.04599, -0.17558, -0.61652, 0.26790],
-    #               [0.79552, 0.04599, 0.17558, 0.61652, -0.26790]])
+    matrix_files = [
+        'Examples-20230617/blobs.100.10.npy',
+        'Examples-20230617/checkerboard.50.4.npy',
+        'Examples-20230617/gaussian.2.5.npy',
+        'Examples-20230617/moons.50.2.npy',
+        'Examples-20230617/sparse.1000.10.npy',
+        'Examples-20230617/spiral.1000.20.npy',
+        'Examples-20230617/uniform.2.5.npy',
+        'Examples-20230617/uniform.10.10.npy',
+        'Examples-20230617/wave.50.4.npy'
+    ]
 
     results = []
-
     algorithm = solve_optimization_5
 
-    print(f"Algorithm 1")
-    start_time = time.time()
-    X_opt, logdet_Xinv, feasible = algorithm(A)
-    elapsed_time = time.time() - start_time
-    results.append({
-        "Algorithm": 1,
-        "Time": elapsed_time,
-        "logdet(X^-1)": logdet_Xinv,
-        "Feasible": feasible,
-        "is_pd": np.all(np.linalg.eigvals(X_opt) > 0),
-        "scores": bool(
-            np.all(np.einsum('...i,ij,...j->...', A, np.linalg.inv(X_opt), A) <= 1.))
-    })
+    for i, matrix_file in enumerate(matrix_files):
+        A = np.load(matrix_file)
+
+        print(f"\n\nRunning Algorithm on Matrix {i+1} - {matrix_file}")
+        start_time = time.time()
+        X_opt, logdet_Xinv, feasible = algorithm(A)
+        elapsed_time = time.time() - start_time
+
+        result = {
+            "Matrix": matrix_file,
+            "Time": elapsed_time,
+            "logdet(X^-1)": logdet_Xinv,
+            "Feasible": feasible,
+            "is_pd": np.all(np.linalg.eigvals(X_opt) > 0),
+            "scores": bool(np.all(np.einsum('...i,ij,...j->...', A, np.linalg.inv(X_opt), A) <= 1.))
+        }
+
+        results.append(result)
 
     # Print the results
     print(tabulate(results, headers="keys"))
+
 
 
 if __name__ == "__main__":
